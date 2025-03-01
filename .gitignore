@@ -1,0 +1,29 @@
+# Ignore build output directories
+bin/
+obj/
+
+# Ignore NuGet packages
+packages/
+*.nupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Ignore publish output
+wwwroot/
+
+# Ignore Rider IDE files
+.idea/
+
+# Ignore Visual Studio Code files
+.vscode/
+
+# Ignore Mac files
+.DS_Store
+
+# Ignore logs
+*.log
+
+# Ignore temporary files
+*.swp
+*.tmp

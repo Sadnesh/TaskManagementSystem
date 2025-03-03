@@ -27,3 +27,6 @@ wwwroot/
 # Ignore temporary files
 *.swp
 *.tmp
+
+#Ignore text files
+*.txt

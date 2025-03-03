@@ -7,22 +7,29 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using TaskManager.Data;
 using TaskManager.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 
 namespace TaskManager.Controllers
-{
+{   
+    [Authorize]
     public class TasksController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public TasksController(AppDbContext context)
+        public TasksController(AppDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         // GET: Tasks
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Tasks.ToListAsync());
+            var user = await _userManager.GetUserAsync(User);
+            var tasks = await _context.Tasks.Where(t => t.UserId == user.Id).ToListAsync();
+            return View(tasks);
         }
 
         // GET: Tasks/Details/5
@@ -33,8 +40,8 @@ namespace TaskManager.Controllers
                 return NotFound();
             }
 
-            var tasks = await _context.Tasks
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var user = await _userManager.GetUserAsync(User);
+            var tasks = await _context.Tasks.FirstOrDefaultAsync(m => m.Id == id && m.UserId == user.Id);
             if (tasks == null)
             {
                 return NotFound();
@@ -50,14 +57,15 @@ namespace TaskManager.Controllers
         }
 
         // POST: Tasks/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,Title,Description,DueDate,IsCompleted")] Tasks tasks)
         {
             if (ModelState.IsValid)
             {
+                var user = await _userManager.GetUserAsync(User);
+                tasks.UserId = user.Id;
+                
                 _context.Add(tasks);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
@@ -73,7 +81,8 @@ namespace TaskManager.Controllers
                 return NotFound();
             }
 
-            var tasks = await _context.Tasks.FindAsync(id);
+            var user = await _userManager.GetUserAsync(User);
+            var tasks = await _context.Tasks.FirstOrDefaultAsync(m => m.Id == id && m.UserId == user.Id);
             if (tasks == null)
             {
                 return NotFound();
@@ -82,8 +91,6 @@ namespace TaskManager.Controllers
         }
 
         // POST: Tasks/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,DueDate,IsCompleted")] Tasks tasks)
@@ -91,6 +98,12 @@ namespace TaskManager.Controllers
             if (id != tasks.Id)
             {
                 return NotFound();
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            if (tasks.UserId != user.Id)
+            {
+                return Unauthorized();
             }
 
             if (ModelState.IsValid)
@@ -124,8 +137,8 @@ namespace TaskManager.Controllers
                 return NotFound();
             }
 
-            var tasks = await _context.Tasks
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var user = await _userManager.GetUserAsync(User);
+            var tasks = await _context.Tasks.FirstOrDefaultAsync(m => m.Id == id && m.UserId == user.Id);
             if (tasks == null)
             {
                 return NotFound();
@@ -139,13 +152,14 @@ namespace TaskManager.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var tasks = await _context.Tasks.FindAsync(id);
+            var user = await _userManager.GetUserAsync(User);
+            var tasks = await _context.Tasks.FirstOrDefaultAsync(m => m.Id == id && m.UserId == user.Id);
             if (tasks != null)
             {
                 _context.Tasks.Remove(tasks);
+                await _context.SaveChangesAsync();
             }
 
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 

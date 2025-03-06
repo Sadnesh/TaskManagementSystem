@@ -101,7 +101,8 @@ namespace TaskManager.Controllers
             }
 
             var user = await _userManager.GetUserAsync(User);
-            if (tasks.UserId != user.Id)
+            var existingTask = await _context.Tasks.AsNoTracking().FirstOrDefaultAsync(m => m.Id == id && m.UserId == user.Id);
+            if (existingTask == null)
             {
                 return Unauthorized();
             }
@@ -110,6 +111,7 @@ namespace TaskManager.Controllers
             {
                 try
                 {
+                    tasks.UserId = existingTask.UserId; 
                     _context.Update(tasks);
                     await _context.SaveChangesAsync();
                 }
